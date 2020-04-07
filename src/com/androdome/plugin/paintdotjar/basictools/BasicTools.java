@@ -85,7 +85,6 @@ class EraserTool extends ToolAdapter
 	
 	public void onSelect(CanvasManager manager)
 	{
-		System.out.println("Selected!");
 		final JSlider brushSlider = new JSlider();
 		final JTextField text = new JTextField();
 		final JCheckBox antiAlias = new JCheckBox("Anti-Aliasing");
@@ -226,9 +225,17 @@ class BrushTool extends ToolAdapter
 	private Point porg = new Point(-1,0);
 	private Color selectedColor = null;
 	private int brushSize = 1;
+	Point mpoint = new Point(0,0);
 	public BrushTool(JavaPlugin plugin) {
 		super(plugin);
 	}
+	
+	public void onMouseExit(MouseEvent e, CanvasManager comp)
+	{
+		mpoint.x = -1;
+		comp.repaint();
+	}
+	
 	//This will only be for the brush tool!
 	public void onSelect(CanvasManager manager)
 	{
@@ -276,8 +283,22 @@ class BrushTool extends ToolAdapter
 		this.getToolbar().add(antiAlias);
 		this.getToolbar().revalidate();
 	}
+	
+	public void onCanvasPaint(Graphics2D g, Rectangle innerFrame, CanvasManager comp){
+		g.setClip(innerFrame);
+		int brushSize=  (int) (this.brushSize*comp.getScale());
+		if(mpoint.x > -1)
+		{
+
+			g.setColor(Color.BLACK);
+			g.drawArc((mpoint.x-brushSize/2)-1, (mpoint.y-brushSize/2)-1, brushSize, brushSize, 0, 360);
+			g.setColor(Color.WHITE);
+			g.drawArc(mpoint.x-(brushSize)/2, mpoint.y-(brushSize)/2, brushSize-2, brushSize-2, 0, 360);
+		}
+	}
 
 	public void onMouseMove(MouseEvent e, CanvasManager comp) {
+		mpoint.x = e.getX(); mpoint.y = e.getY();
 		if(porg.x > -1)
 		{
 			Graphics2D g = (Graphics2D) tempCanvas.getGraphics();
@@ -299,6 +320,7 @@ class BrushTool extends ToolAdapter
 	}
 
 	public void onMouseDrag(MouseEvent e, CanvasManager comp) {
+		mpoint.x = e.getX(); mpoint.y = e.getY();
 		Graphics2D g = (Graphics2D)tempCanvas.getGraphics();
 		if(antialias)
 			g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
