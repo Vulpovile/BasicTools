@@ -311,11 +311,11 @@ class BrushTool extends ToolAdapter
 			Point loc2 = comp.getLocationOnGraphics(porg);
 			//System.out.println("Drawing line from" + loc1.x+ ", " + loc1.y + " to " + loc2.x+ ", " + loc2.y);
 			g.drawLine(loc1.x, loc1.y, loc2.x, loc2.y);
-			if(lastDraw < (System.currentTimeMillis()-REPAINT_TIME))
-			{
-				lastDraw = System.currentTimeMillis();
-				comp.repaint();
-			}
+		}
+		if(lastDraw < (System.currentTimeMillis()-REPAINT_TIME))
+		{
+			lastDraw = System.currentTimeMillis();
+			comp.repaint();
 		}
 	}
 
