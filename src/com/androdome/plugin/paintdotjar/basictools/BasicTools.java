@@ -22,6 +22,8 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
 import com.androdome.util.paintdotjar.Canvas;
+import com.androdome.util.paintdotjar.managers.HistoryEntry;
+import com.androdome.util.paintdotjar.managers.HistoryManager.Operations;
 import com.androdome.util.paintdotjar.plugin.JavaPlugin;
 import com.androdome.util.paintdotjar.plugin.tool.ToolAdapter;
 import com.androdome.util.paintdotjar.ui.CanvasManager;
@@ -32,12 +34,13 @@ public class BasicTools extends JavaPlugin {
 
 	public void init() {
 		try {
-			System.out.println("Basic tools loaded");
+			System.out.println("Basic tools loading");
 			this.getManager().registerTool(new PencilTool(this), this, ImageIO.read(this.getClass().getResourceAsStream("/testicon.png")), "Pencil tool");
 			this.getManager().registerTool(new BrushTool(this), this, ImageIO.read(this.getClass().getResourceAsStream("/paintbrush.png")), "Paintbrush tool");			
 			this.getManager().registerTool(new EraserTool(this), this, ImageIO.read(this.getClass().getResourceAsStream("/eraser.png")), "Eraser tool");
 			this.getManager().registerTool(new DropperTool(this), this, ImageIO.read(this.getClass().getResourceAsStream("/dropper.png")), "Dropper tool");
-
+			SelectionTools.init(this);
+			System.out.println("Basic tools loaded");
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -79,6 +82,7 @@ class EraserTool extends ToolAdapter
 	Point mpoint = new Point(0,0);
 	private int brushSize = 1;
 	private boolean antialias = false;
+	private Canvas historicCanvas;
 	public EraserTool(JavaPlugin plugin) {
 		super(plugin);
 	}
@@ -177,6 +181,7 @@ class EraserTool extends ToolAdapter
 	}
 
 	public void onMousePress(MouseEvent e, CanvasManager comp) {
+		historicCanvas = comp.getSelectedCanvas();
 		porg.x = e.getX(); porg.y = e.getY();
 	}
 	
@@ -187,6 +192,12 @@ class EraserTool extends ToolAdapter
 	}
 
 	public void onMouseRelease(MouseEvent e, CanvasManager comp) {
+		try{
+			comp.getHistoryManager().pushChange(new HistoryEntry(Operations.CHANGE_CANVAS, comp.getSelectedIndex(), historicCanvas, "Eraser Tool", this.getToolHandle().getIcon()));
+		} catch (Exception ex)
+		{
+			ex.printStackTrace();
+		}
 		Graphics2D g = (Graphics2D)comp.getSelectedCanvas().getGraphics();
 		if(antialias)
 			g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -239,7 +250,6 @@ class BrushTool extends ToolAdapter
 	//This will only be for the brush tool!
 	public void onSelect(CanvasManager manager)
 	{
-		System.out.println("Selected!");
 		final JSlider brushSlider = new JSlider();
 		final JTextField text = new JTextField();
 		final JCheckBox antiAlias = new JCheckBox("Anti-Aliasing");
@@ -339,18 +349,17 @@ class BrushTool extends ToolAdapter
 	}
 
 	public void onMousePress(MouseEvent e, CanvasManager comp) {
-		System.out.println("Painting!");
 		porg.x = e.getX(); porg.y = e.getY();
 		tempCanvas = comp.getTemporaryCanvas(comp.getSelectedIndex());
 		if(e.getButton() == MouseEvent.BUTTON1)
 		{
 			selectedColor = colorMinusAlpha(comp.getPrimary());
-			tempCanvas.setOpacity(comp.getPrimary().getAlpha());
+			tempCanvas.setOpacity((short) comp.getPrimary().getAlpha());
 		}
 		else if(e.getButton() == MouseEvent.BUTTON3)
 		{
 			selectedColor = colorMinusAlpha(comp.getPrimary());
-			tempCanvas.setOpacity(comp.getPrimary().getAlpha());
+			tempCanvas.setOpacity((short) comp.getPrimary().getAlpha());
 		}
 	}
 
@@ -371,7 +380,7 @@ class BrushTool extends ToolAdapter
 		//System.out.println("Drawing line from" + loc1.x+ ", " + loc1.y + " to " + loc2.x+ ", " + loc2.y);
 		g.drawLine(loc1.x, loc1.y, loc2.x, loc2.y);
 		porg.x = -1;
-		comp.applyTemporaryCanvas();
+		comp.applyTemporaryCanvas("Brush Tool", this.getToolHandle().getIcon());
 		tempCanvas = null;
 		selectedColor = null;
 		comp.repaint();	
@@ -429,12 +438,12 @@ class PencilTool extends ToolAdapter
 		if(e.getButton() == MouseEvent.BUTTON1)
 		{
 			selectedColor = colorMinusAlpha(comp.getPrimary());
-			tempCanvas.setOpacity(comp.getPrimary().getAlpha());
+			tempCanvas.setOpacity((short) comp.getPrimary().getAlpha());
 		}
 		else if(e.getButton() == MouseEvent.BUTTON3)
 		{
 			selectedColor = colorMinusAlpha(comp.getPrimary());
-			tempCanvas.setOpacity(comp.getPrimary().getAlpha());
+			tempCanvas.setOpacity((short) comp.getPrimary().getAlpha());
 		}
 	}
 
@@ -452,7 +461,7 @@ class PencilTool extends ToolAdapter
 		//System.out.println("Drawing line from" + loc1.x+ ", " + loc1.y + " to " + loc2.x+ ", " + loc2.y);
 		g.drawLine(loc1.x, loc1.y, loc2.x, loc2.y);
 		porg.x = -1;
-		comp.applyTemporaryCanvas();
+		comp.applyTemporaryCanvas("Pencil Tool", this.getToolHandle().getIcon());
 		tempCanvas = null;
 		selectedColor = null;
 		if(lastDraw < (System.currentTimeMillis()-40))
